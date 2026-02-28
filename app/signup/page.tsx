@@ -24,6 +24,7 @@ export default function SignupPage() {
   const [sendingMail, setSendingMail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const isEmailFormatValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   // 메일에서 인증 링크 클릭 후 리다이렉트: ?verified=1&email=xxx
   useEffect(() => {
@@ -146,20 +147,6 @@ export default function SignupPage() {
 
             <form className="signup-form" onSubmit={handleSubmit} noValidate>
             <div className="signup-input-wrap">
-              <label htmlFor="signup-nickname" className="signup-label">
-                닉네임
-              </label>
-              <input
-                id="signup-nickname"
-                type="text"
-                className="login-input"
-                placeholder="최초 1회 설정 후 변경 불가"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-              />
-            </div>
-
-            <div className="signup-input-wrap">
               <label htmlFor="signup-email" className="signup-label">
                 이메일
               </label>
@@ -181,9 +168,9 @@ export default function SignupPage() {
                 />
                 <button
                     type="button"
-                    className={`signup-dup-btn ${emailVerified ? 'signup-dup-btn--verified' : ''}`}
+                    className={`signup-dup-btn${emailVerified ? " signup-dup-btn--verified" : ""}`}
                     onClick={handleEmailDuplicateCheck}
-                    disabled={sendingMail || emailVerified} // 💡 인증 완료 시 중복확인 재발송 차단
+                    disabled={sendingMail || emailVerified || !isEmailFormatValid} // 인증 완료/이메일 형식 전까지 차단
                 >
                   {sendingMail ? "발송 중…" : emailVerified ? "인증완료" : "중복확인"}
                 </button>
@@ -194,6 +181,20 @@ export default function SignupPage() {
                 </p>
               )}
               {emailError && <p className="login-input-error-msg" role="alert">{emailError}</p>}
+            </div>
+
+            <div className="signup-input-wrap">
+              <label htmlFor="signup-nickname" className="signup-label">
+                닉네임
+              </label>
+              <input
+                id="signup-nickname"
+                type="text"
+                className="login-input"
+                placeholder="최초 1회 설정 후 변경 불가"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
             </div>
 
             <div className="signup-input-wrap signup-input-wrap--password">

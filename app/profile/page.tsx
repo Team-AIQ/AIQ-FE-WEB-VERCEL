@@ -31,10 +31,7 @@ export default function ProfilePage() {
 
   const redirectToLogin = () => {
     if (typeof window === "undefined") return;
-    const webBase =
-      process.env.NEXT_PUBLIC_WEB_URL?.replace(/\/$/, "") ||
-      "http://localhost:3000";
-    window.location.href = `${webBase}/login`;
+    window.location.href = "/login";
   };
 
   useEffect(() => {

@@ -235,6 +235,19 @@ export default function ChatPage() {
     if (messages.length === 0) return;
     const el = chatMessagesRef.current;
     if (!el) return;
+    const lastMessage = messages[messages.length - 1];
+    const reportVisible = lastMessage?.variant === "report";
+
+    if (reportVisible) {
+      requestAnimationFrame(() => {
+        reportMsgRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+      return;
+    }
+
     const scrollToBottom = () => {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     };
@@ -248,6 +261,17 @@ export default function ChatPage() {
   useEffect(() => {
     const el = chatMessagesRef.current;
     if (!el) return;
+
+    if (reportPhase === "report") {
+      requestAnimationFrame(() => {
+        reportMsgRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+      return;
+    }
+
     requestAnimationFrame(() => {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     });
@@ -483,9 +507,18 @@ export default function ChatPage() {
 
       const res = await apiFetch(`/api/v1/curation/history/${queryId}/report`);
       if (!res.ok) {
+        let errorMessage = "저장된 보고서를 찾을 수 없습니다.";
+        try {
+          const errorJson = await res.json();
+          if (typeof errorJson?.message === "string" && errorJson.message.trim()) {
+            errorMessage = errorJson.message;
+          }
+        } catch {
+          // ignore parse errors and keep default message
+        }
         msgs.push({
           id: Date.now() + Math.random() + 1,
-          text: "저장된 보고서를 찾을 수 없습니다.",
+          text: errorMessage,
           isUser: false,
         });
         setShowWelcome(false);
@@ -762,7 +795,7 @@ export default function ChatPage() {
       }
 
       if (cancelFlowRef.current) return;
-      startSseStream(data.queryId);
+      void startSseStream(data.queryId);
     } catch (error) {
       if ((error as Error)?.name === "AbortError" || cancelFlowRef.current) {
         return;
@@ -777,7 +810,7 @@ export default function ChatPage() {
   };
 
   // [SSE] 스트림 처리 함수
-  const startSseStream = (queryId: number) => {
+  const startSseStream = async (queryId: number) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
     // AI 토글 상태에 따라 models 파라미터 생성
@@ -789,7 +822,8 @@ export default function ChatPage() {
 
     const modelsParam =
       modelList.length > 0 ? `?models=${modelList.join(",")}` : "";
-    const url = `${baseUrl}/api/v1/aiq/stream/${queryId}${modelsParam}`;
+    const streamUrlWithModels = `${baseUrl}/api/v1/aiq/stream/${queryId}${modelsParam}`;
+    const streamUrlWithoutModels = `${baseUrl}/api/v1/aiq/stream/${queryId}`;
 
     const token = getAccessToken();
     if (!token) {
@@ -797,11 +831,74 @@ export default function ChatPage() {
       return;
     }
 
-    console.log("SSE 연결 시도:", url);
+    console.log("SSE 연결 시도:", streamUrlWithModels);
+
+    // 중복 스트림 연결 방지
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    // 서버가 500을 반환하는 경우 EventSource가 재시도하며 콘솔 에러를 반복할 수 있어,
+    // 먼저 일반 fetch로 상태를 확인한 뒤 정상일 때만 스트림을 연다.
+    let streamUrlToUse = streamUrlWithModels;
+    try {
+      const precheckRes = await fetch(streamUrlWithModels, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "text/event-stream",
+        },
+        credentials: "include",
+      });
+
+      if (!precheckRes.ok) {
+        console.error(`SSE precheck 실패(모델 포함): ${precheckRes.status}`);
+
+        // 백엔드가 models 파라미터를 처리하지 못하는 환경 대비
+        const fallbackRes = await fetch(streamUrlWithoutModels, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "text/event-stream",
+          },
+          credentials: "include",
+        });
+
+        if (!fallbackRes.ok) {
+          console.error(`SSE precheck 실패(모델 미포함): ${fallbackRes.status}`);
+          setReportPhase("idle");
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              text: "리포트 생성 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+              isUser: false,
+            },
+          ]);
+          return;
+        }
+
+        streamUrlToUse = streamUrlWithoutModels;
+        console.warn("SSE fallback 사용: models 파라미터 없이 연결합니다.");
+      }
+    } catch (precheckError) {
+      console.error("SSE precheck 네트워크 오류:", precheckError);
+      setReportPhase("idle");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          text: "네트워크 오류로 리포트를 생성하지 못했습니다. 다시 시도해주세요.",
+          isUser: false,
+        },
+      ]);
+      return;
+    }
 
     const EventSourcePolyfill =
       require("event-source-polyfill").EventSourcePolyfill;
-    const eventSource = new EventSourcePolyfill(url, {
+    const eventSource = new EventSourcePolyfill(streamUrlToUse, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1145,6 +1242,73 @@ export default function ChatPage() {
       </div>
     );
 
+    const renderAiInlinePanel = (
+      modelLabel: string,
+      modelLogo: string,
+      aiData: AiResponse,
+    ) => (
+      <div className="rpt-panel-inline">
+        <div className="rpt-panel-head">
+          <h3 className="rpt-panel-name">
+            <img
+              src={modelLogo}
+              alt={modelLabel}
+              className="rpt-ai-logo"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+            {modelLabel}
+          </h3>
+          <button
+            type="button"
+            className="rpt-panel-back"
+            onClick={() => setSelectedAiKey(null)}
+          >
+            ← 뒤로가기
+          </button>
+        </div>
+        <div className="rpt-panel-scroll">
+          {aiData.recommendations?.map((rec, recIdx) => (
+            <div key={recIdx} className="rpt-panel-rec">
+              <h4 className="rpt-panel-rec-t">
+                {recIdx + 1}. {rec.productName || rec.targetAudience}
+              </h4>
+              {rec.productCode && (
+                <p className="rpt-panel-rec-code">모델 코드: {rec.productCode}</p>
+              )}
+              {rec.productName && rec.targetAudience && (
+                <p className="rpt-panel-rec-audience">
+                  추천 대상: {rec.targetAudience}
+                </p>
+              )}
+              <ul className="rpt-panel-rec-ul">
+                {rec.selectionReasons?.map((reason, rIdx) => (
+                  <li key={rIdx}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          {aiData.specGuide && (
+            <div className="rpt-panel-sec">
+              <h4 className="rpt-panel-sec-t">구매 스펙 가이드</h4>
+              <div className="rpt-panel-sec-body">
+                {renderFormattedText(aiData.specGuide)}
+              </div>
+            </div>
+          )}
+          {aiData.finalWord && (
+            <div className="rpt-panel-sec">
+              <h4 className="rpt-panel-sec-t">종합 의견</h4>
+              <div className="rpt-panel-sec-body">
+                {renderFormattedText(aiData.finalWord)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
     // ===== 공용: AI 공통 합의 콘텐츠 =====
     const renderConsensus = () => (
       <div className="rpt-v2-consensus-box">
@@ -1252,40 +1416,46 @@ export default function ChatPage() {
             const firstRec = found?.aiData.recommendations?.[0];
             const isSelected = selectedAiKey === key;
             return (
-              <div
-                key={key}
-                className={`rpt-ai-card-vert rpt-ai-card-vert--compact${!found ? " is-off" : ""}${isSelected ? " is-selected" : ""}`}
-              >
-                <div className="rpt-ai-card-vert-main">
-                  <div className="rpt-ai-card-head">
-                    <img
-                      src={logo}
-                      alt={label}
-                      className="rpt-ai-logo"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                    <span className="rpt-ai-label">{label}</span>
-                  </div>
-                  <div className="rpt-ai-card-vert-sub">
-                    {found
-                      ? firstRec?.productName ||
-                        firstRec?.targetAudience ||
-                        "추천 결과"
-                      : "OFF"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="rpt-ai-card-vert-btn"
-                  onClick={() =>
-                    setSelectedAiKey(selectedAiKey === key ? null : key)
-                  }
-                  disabled={!found}
+              <div key={key} className="rpt-ai-card-vert-wrap">
+                <div
+                  className={`rpt-ai-card-vert rpt-ai-card-vert--compact${!found ? " is-off" : ""}${isSelected ? " is-selected" : ""}`}
                 >
-                  {selectedAiKey === key ? "접기" : "상세보기"}
-                </button>
+                  <div className="rpt-ai-card-vert-main">
+                    <div className="rpt-ai-card-head">
+                      <img
+                        src={logo}
+                        alt={label}
+                        className="rpt-ai-logo"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                      <span className="rpt-ai-label">{label}</span>
+                    </div>
+                    <div className="rpt-ai-card-vert-sub">
+                      {found
+                        ? firstRec?.productName ||
+                          firstRec?.targetAudience ||
+                          "추천 결과"
+                        : "OFF"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="rpt-ai-card-vert-btn"
+                    onClick={() =>
+                      setSelectedAiKey(selectedAiKey === key ? null : key)
+                    }
+                    disabled={!found}
+                  >
+                    {selectedAiKey === key ? "접기" : "상세보기"}
+                  </button>
+                </div>
+                {isSelected && found && (
+                  <div className="rpt-ai-card-vert-inline-panel">
+                    {renderAiInlinePanel(label, logo, found.aiData)}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1333,7 +1503,12 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="rpt-v3-first-panel">
-                {panelAi ? renderAiPanel() : renderConsensus()}
+                <div className="rpt-v3-first-panel-desktop">
+                  {panelAi ? renderAiPanel() : renderConsensus()}
+                </div>
+                <div className="rpt-v3-first-panel-mobile">
+                  {renderConsensus()}
+                </div>
               </div>
             </div>
           </div>

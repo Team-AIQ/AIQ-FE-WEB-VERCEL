@@ -88,6 +88,7 @@ body.login-page {
 }
 
 .login-character img {
+  display: block;
   width: 100%;
   height: auto;
   max-height: 90vh;
@@ -222,6 +223,8 @@ body.login-page {
   padding: 0.75rem 1rem;
   font-family: var(--font-body);
   font-size: 0.95rem;
+  line-height: 1.4;
+  min-height: 44px;
   color: var(--color-white);
   background: var(--color-black);
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -592,8 +595,8 @@ body.login-page {
     order: 1;
     flex: 1 1 auto;
     min-height: 0;
-    justify-content: center;
-    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    justify-content: flex-start;
+    padding: calc(max(1rem, env(safe-area-inset-top)) + 2.75rem) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   }
 
   .login-character {
@@ -607,7 +610,8 @@ body.login-page {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-bottom: 0;
+    line-height: 0;
   }
 
   .login-character img {
@@ -710,6 +714,12 @@ body.login-page {
   transition: color 0.2s, border-color 0.2s;
 }
 
+.signup-dup-btn:disabled {
+  color: var(--color-gray-dim);
+  border-color: rgba(255, 255, 255, 0.35);
+  cursor: not-allowed;
+}
+
 .signup-dup-btn:hover {
   color: var(--color-teal);
   border-color: var(--color-teal);
@@ -765,13 +775,15 @@ body.login-page {
 
 .signup-success-toast {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
   z-index: 100;
   padding: 1rem 2rem;
   font-family: var(--font-body);
   font-size: 1rem;
+  text-align: center;
   color: var(--color-white);
   background: rgba(0, 0, 0, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -815,8 +827,14 @@ body.login-page {
 }
 
 @media (max-width: 600px) {
+  .login-back {
+    top: max(0.85rem, env(safe-area-inset-top));
+    left: max(1rem, env(safe-area-inset-left));
+    font-size: 0.82rem;
+  }
+
   .signup-content {
-    max-width: 280px;
+    max-width: 300px;
   }
 
   .signup-title {
@@ -842,6 +860,15 @@ body.login-page {
     font-size: 0.8rem;
   }
 
+  .signup-input-wrap--password .login-input {
+    font-size: 0.86rem;
+    padding-right: 3.25rem;
+  }
+
+  .signup-input-wrap--password .login-input::placeholder {
+    font-size: 0.74rem;
+  }
+
   .signup-hint {
     font-size: 0.75rem;
     margin-top: 0.3rem;
@@ -860,11 +887,19 @@ body.login-page {
   .signup-submit-btn {
     margin-top: 0.4rem;
   }
+
+  .login-input-error-msg {
+    font-size: 0.72rem;
+    line-height: 1.45;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (max-width: 400px) {
   .signup-content {
-    max-width: 260px;
+    max-width: 280px;
   }
 
   .signup-title {
@@ -913,5 +948,13 @@ body.login-page {
 
   .signup-submit-btn {
     margin-top: 0.3rem;
+  }
+
+  .login-input-error-msg {
+    font-size: 0.68rem;
+    line-height: 1.4;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 }
