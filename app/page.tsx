@@ -96,6 +96,7 @@ export default function HomePage() {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isAppStoreNoticeOpen, setIsAppStoreNoticeOpen] = useState(false);
 
   const router = useRouter(); // 3. router 인스턴스 생성
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 4. 로그인 상태 추가
@@ -580,21 +581,17 @@ export default function HomePage() {
               지구인을 위한 대화형 AI 쇼핑 어시스턴트, AIQ
             </p>
             <div className="app-buttons">
-              <a
-                href={
-                  process.env.NEXT_PUBLIC_APP_STORE_URL ??
-                  "https://www.apple.com/kr/app-store/"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
                 className="app-store-link"
-                aria-label="App Store에서 다운로드"
+                aria-label="App Store 출시 안내"
+                onClick={() => setIsAppStoreNoticeOpen(true)}
               >
                 <img
                   src="/image/app-store-btn.png"
                   alt="Download on the App Store"
                 />
-              </a>
+              </button>
             </div>
             <img
               src="/image/app-star.png"
@@ -775,6 +772,51 @@ export default function HomePage() {
         onClose={() => setIsPrivacyOpen(false)}
       />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      {isAppStoreNoticeOpen && (
+        <>
+          <div
+            className="service-intro-overlay"
+            onClick={() => setIsAppStoreNoticeOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="service-intro-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-store-notice-title"
+          >
+            <button
+              className="service-intro-close"
+              onClick={() => setIsAppStoreNoticeOpen(false)}
+              aria-label="닫기"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <div className="service-intro-content">
+              <h1 id="app-store-notice-title" className="service-intro-title">
+                App Store 출시 준비중
+              </h1>
+              <p className="service-intro-text" style={{ textAlign: "center" }}>
+                iOS 앱 출시를 준비하고 있습니다.
+              </p>
+              <p className="service-intro-text" style={{ textAlign: "center" }}>
+                심사가 완료되는 대로 App Store 다운로드를 오픈할게요.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

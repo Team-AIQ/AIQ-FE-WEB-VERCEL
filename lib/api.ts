@@ -90,7 +90,10 @@ export async function apiFetch(
 
     const doRequest = async (token: string | null, isRetry = false): Promise<Response> => {
         const headers = new Headers(init.headers);
-        if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+        // GET/HEAD에는 Content-Type을 강제로 붙이지 않는다.
+        if (init.body && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
         if (token) headers.set("Authorization", `Bearer ${token}`);
 
         try {

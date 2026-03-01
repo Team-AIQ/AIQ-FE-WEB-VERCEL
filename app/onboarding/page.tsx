@@ -63,6 +63,7 @@ export default function OnboardingPage() {
   const [clickedStep2Button, setClickedStep2Button] = useState(false);
   const [clickedStep3Button, setClickedStep3Button] = useState(false);
   const [clickedStep4Button, setClickedStep4Button] = useState(false);
+  const [gaugeImageError, setGaugeImageError] = useState(false);
 
   const lastUserMsgRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +210,10 @@ export default function OnboardingPage() {
             ? "/image/onboarding-gauge-75.png"
             : "/image/onboarding-gauge-100.png";
 
+  useEffect(() => {
+    setGaugeImageError(false);
+  }, [gaugeSrc]);
+
   return (
     <>
       <div className="login-bg onboarding-bg" role="presentation" />
@@ -253,7 +258,7 @@ export default function OnboardingPage() {
 
           <button
             type="button"
-            className="onboarding-skip-btn"
+            className="onboarding-skip-btn onboarding-skip-btn--desktop"
             onClick={handleSkip}
           >
             <img
@@ -269,23 +274,61 @@ export default function OnboardingPage() {
 
         <section className="onboarding-right">
           <div className="onboarding-right-top">
-            <div className="onboarding-user-box">
-              <img
-                src="/image/user-icon.png"
-                alt=""
-                className="onboarding-user-icon"
-                aria-hidden
-              />
-              <span className="onboarding-user-name">{nickname}</span>
+            <div className="onboarding-mobile-topline">
+              <button
+                type="button"
+                className="onboarding-skip-btn onboarding-skip-btn--mobile"
+                onClick={handleSkip}
+              >
+                <img
+                  src="/image/skip-alien-icon.png"
+                  alt=""
+                  className="onboarding-skip-icon-img"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+                <span className="onboarding-skip-text">건너뛰기</span>
+                <span className="onboarding-skip-arrow"> &gt;</span>
+              </button>
+
+              <div className="onboarding-user-box">
+                <img
+                  src="/image/user-icon.png"
+                  alt=""
+                  className="onboarding-user-icon"
+                  aria-hidden
+                />
+                <span className="onboarding-user-name">{nickname}</span>
+              </div>
             </div>
 
+            <p className="onboarding-intro onboarding-intro-mobile" aria-live="polite">
+              {INTRO_LINES.map((line, idx) => (
+                <span key={idx}>
+                  {line}
+                  {idx < INTRO_LINES.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
             <div className="onboarding-gauge-wrap">
-              <img
-                key={progress}
-                src={gaugeSrc}
-                alt={`진행률 ${progress}%`}
-                className="onboarding-gauge-img"
-              />
+              {gaugeImageError ? (
+                <div className="onboarding-gauge-fallback" aria-label={`진행률 ${progress}%`}>
+                  <div className="onboarding-gauge-fallback-track">
+                    <div
+                      className="onboarding-gauge-fallback-fill"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="onboarding-gauge-fallback-text">{progress}%</span>
+                </div>
+              ) : (
+                <img
+                  key={progress}
+                  src={gaugeSrc}
+                  alt={`진행률 ${progress}%`}
+                  className="onboarding-gauge-img"
+                  onError={() => setGaugeImageError(true)}
+                />
+              )}
             </div>
           </div>
 

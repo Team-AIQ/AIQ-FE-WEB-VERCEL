@@ -6,9 +6,9 @@ import { useState, useRef, useEffect } from "react";
 import { requestResetCode, verifyResetCode, resetPassword } from "@/lib/api";
 
 const CODE_LENGTH = 6;
-/** 비밀번호: 영문 소문자, 숫자 포함 8~16자 (특수문자 허용) */
+/** 비밀번호: 영문 소문자, 숫자, 특수문자 $#! 포함 8~16자 */
 const PASSWORD_REGEX =
-  /^(?=.*[a-z])(?=.*\d)[a-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,16}$/;
+  /^(?=.*[a-z])(?=.*\d)(?=.*[$#!])[a-z\d$#!]{8,16}$/;
 function isValidPassword(value: string) {
   return PASSWORD_REGEX.test(value);
 }
@@ -192,7 +192,7 @@ export default function ForgotPasswordPage() {
     setPasswordError("");
     setConfirmError("");
     if (!isValidPassword(newPassword)) {
-      setPasswordError("영문 소문자, 숫자 포함 8~16자로 입력해주세요.");
+      setPasswordError("영문 소문자, 숫자, 특수문자 $#! 포함 8~16자로 입력해주세요.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -405,14 +405,14 @@ export default function ForgotPasswordPage() {
                       id="forgot-new-password"
                       type={showNewPassword ? "text" : "password"}
                       className={`login-input${passwordError ? " login-input--error" : ""}`}
-                      placeholder="영문 소문자, 숫자 포함 8~16자"
+                      placeholder="영문 소문자, 숫자, 특수문자 $#! 포함 8~16자"
                       autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => {
                         const value = e.target.value;
                         setNewPassword(value);
                         if (value && !isValidPassword(value)) {
-                          setPasswordError("영문 소문자, 숫자 포함 8~16자로 입력해주세요.");
+                          setPasswordError("영문 소문자, 숫자, 특수문자 $#! 포함 8~16자로 입력해주세요.");
                         } else {
                           setPasswordError("");
                         }
@@ -428,7 +428,7 @@ export default function ForgotPasswordPage() {
                       onBlur={() => {
                         if (newPassword && !isValidPassword(newPassword)) {
                           setPasswordError(
-                            "영문 소문자, 숫자 포함 8~16자로 입력해주세요.",
+                            "영문 소문자, 숫자, 특수문자 $#! 포함 8~16자로 입력해주세요.",
                           );
                         } else {
                           setPasswordError("");
