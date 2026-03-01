@@ -350,33 +350,36 @@ export default function ProfilePage() {
             >
               <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
                 <p className="profile-modal-text">
-                  정말 탈퇴하시겠습니까?
-                  <br />
-                  모든 데이터가 삭제됩니다.
+                  탈퇴 시 구매한 크레딧과 데이터가 삭제됩니다.
                 </p>
 
                 {!isOAuth ? (
-                  <div className="profile-input-pw-wrap profile-modal-input-wrap">
-                    <input
-                      type={showDeleteCurrentPassword ? "text" : "password"}
-                      className="profile-input profile-modal-input"
-                      placeholder="현재 비밀번호 입력"
-                      value={deleteCurrentPassword}
-                      onChange={(e) => setDeleteCurrentPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="profile-pw-toggle"
-                      onClick={() => setShowDeleteCurrentPassword((v) => !v)}
-                      aria-label={
-                        showDeleteCurrentPassword
-                          ? "비밀번호 숨기기"
-                          : "비밀번호 보기"
-                      }
-                    >
-                      {showDeleteCurrentPassword ? EyeOpen : EyeClosed}
-                    </button>
-                  </div>
+                  <>
+                    <p className="profile-modal-hint">
+                      진행을 원하시면 비밀번호를 입력해 주세요.
+                    </p>
+                    <div className="profile-input-pw-wrap profile-modal-input-wrap">
+                      <input
+                        type={showDeleteCurrentPassword ? "text" : "password"}
+                        className="profile-input profile-modal-input"
+                        placeholder="현재 비밀번호 입력"
+                        value={deleteCurrentPassword}
+                        onChange={(e) => setDeleteCurrentPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="profile-pw-toggle"
+                        onClick={() => setShowDeleteCurrentPassword((v) => !v)}
+                        aria-label={
+                          showDeleteCurrentPassword
+                            ? "비밀번호 숨기기"
+                            : "비밀번호 보기"
+                        }
+                      >
+                        {showDeleteCurrentPassword ? EyeOpen : EyeClosed}
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <p className="profile-modal-hint">
                     소셜 로그인 계정은 비밀번호 입력 없이 탈퇴됩니다.

@@ -314,8 +314,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 2rem;
-  max-width: 320px;
-  width: 90%;
+  width: min(92vw, 360px);
   text-align: center;
 }
 
@@ -324,6 +323,9 @@
   color: var(--color-white);
   line-height: 1.6;
   margin: 0 0 1.5rem;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-break: strict;
 }
 
 .profile-modal-btns {
@@ -358,6 +360,9 @@
   font-size: 0.74rem;
   color: var(--color-gray);
   line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-break: strict;
 }
 
 .profile-modal-btn--cancel {

@@ -333,9 +333,7 @@ body.onboarding-page {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: url("/image/chat-bg-matrix.png") center 0 repeat-y;
-  background-size: 100% auto;
-  animation: onboarding-chat-bg-scroll 20s linear infinite;
+  overflow: hidden;
   pointer-events: none;
 }
 
@@ -343,6 +341,7 @@ body.onboarding-page {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0.5) 0%,
@@ -353,12 +352,34 @@ body.onboarding-page {
   pointer-events: none;
 }
 
+.onboarding-chat-bg::after {
+  content: "";
+  position: absolute;
+  inset: -2px -4px;
+  z-index: 0;
+  background: url("/image/chat-bg-matrix.png") center center no-repeat;
+  background-size: cover;
+  animation: onboarding-chat-bg-float 6s ease-in-out infinite alternate;
+  will-change: transform;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
 @keyframes onboarding-chat-bg-scroll {
   0% {
     background-position: center 0;
   }
   100% {
-    background-position: center 100%;
+    background-position: center 360px;
+  }
+}
+
+@keyframes onboarding-chat-bg-float {
+  0% {
+    transform: translate3d(0, -8%, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(0, 8%, 0) scale(1.04);
   }
 }
 
@@ -528,6 +549,10 @@ body.onboarding-page {
   width: 100%;
 }
 
+.onboarding-intro-mobile {
+  display: none;
+}
+
 /* STEP1 두 버튼 반반 */
 .onboarding-choices .onboarding-choice-btn {
   flex: 1;
@@ -659,7 +684,7 @@ body.onboarding-page {
   .onboarding-layout {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
-    padding-top: calc(max(4rem, env(safe-area-inset-top)) + 0.1rem);
+    padding-top: calc(max(3.45rem, env(safe-area-inset-top)) + 0.05rem);
     padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
     gap: 0.4rem;
     overflow-y: auto;
@@ -672,14 +697,36 @@ body.onboarding-page {
   }
 
   .onboarding-intro {
-    display: block;
-    font-size: 0.76rem;
-    line-height: 1.45;
-    margin: 0.1rem 0 0.25rem;
+    display: none;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin: 0.3rem 0 0.35rem;
     min-height: 0;
     text-align: center;
     padding: 0 0.15rem;
     width: 100%;
+  }
+
+  .onboarding-intro-mobile {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin: 0.2rem 0 0.12rem;
+    text-align: center;
+    padding: 0 0.1rem;
+    width: 100%;
+  }
+
+  .onboarding-gauge-wrap {
+    margin-bottom: 0.12rem;
+  }
+
+  .onboarding-gauge-img {
+    width: min(86%, 300px);
+  }
+
+  .onboarding-gauge-fallback {
+    width: min(86%, 300px);
   }
 
   .onboarding-left {
@@ -709,7 +756,7 @@ body.onboarding-page {
   }
 
   .onboarding-right-top {
-    padding-top: 0.35rem;
+    padding-top: 0;
   }
 
   .onboarding-mobile-topline {
@@ -719,7 +766,7 @@ body.onboarding-page {
     right: auto;
     z-index: 2;
     justify-content: space-between;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.08rem;
     padding-right: 0.15rem;
   }
 
@@ -727,20 +774,30 @@ body.onboarding-page {
     margin-bottom: 0.4rem;
   }
 
+  .onboarding-chat-bg {
+    overflow: hidden;
+  }
+
+  .onboarding-chat-bg::after {
+    background-size: cover;
+    animation-duration: 5.5s;
+  }
+
   .onboarding-chat {
-    padding: 0.8rem 0.75rem;
-    min-height: 320px;
+    padding: 0.72rem 0.68rem;
+    min-height: 300px;
   }
 
   .onboarding-msg-bubble,
   .onboarding-msg-bubble--user {
     text-align: left;
-    line-height: 1.5;
+    line-height: 1.45;
     word-break: keep-all;
     overflow-wrap: break-word;
     line-break: strict;
-    padding: 0.5rem 0.72rem;
-    max-width: 94%;
+    font-size: 0.74rem;
+    padding: 0.46rem 0.66rem;
+    max-width: 97%;
   }
 
   .onboarding-choices {

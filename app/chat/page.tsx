@@ -507,11 +507,23 @@ export default function ChatPage() {
 
       const res = await apiFetch(`/api/v1/curation/history/${queryId}/report`);
       if (!res.ok) {
-        let errorMessage = "저장된 보고서를 찾을 수 없습니다.";
+        let errorMessage = "저장된 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
         try {
           const errorJson = await res.json();
-          if (typeof errorJson?.message === "string" && errorJson.message.trim()) {
-            errorMessage = errorJson.message;
+          const rawMessage =
+            typeof errorJson?.message === "string"
+              ? errorJson.message.trim()
+              : "";
+
+          if (/query did not return a unique result|non.?unique result/i.test(rawMessage)) {
+            errorMessage =
+              "보고서 데이터가 중복되어 불러오지 못했습니다. 새로 리포트를 생성해 주세요.";
+          } else if (res.status === 404) {
+            errorMessage = "저장된 보고서를 찾을 수 없습니다.";
+          } else if (res.status === 400) {
+            errorMessage = "요청한 보고서를 불러올 수 없습니다. 다시 시도해 주세요.";
+          } else if (res.status >= 500) {
+            errorMessage = "서버 오류로 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
           }
         } catch {
           // ignore parse errors and keep default message
@@ -738,11 +750,14 @@ export default function ChatPage() {
     setOptionSelectionLocked(false);
     optionSelectionLockRef.current = false;
     setPendingReportData(data);
+    const consentText = isGuestUser
+      ? "리포트를 생성할까요?\n*비동의시 메인화면으로 재이동됩니다"
+      : `리포트 생성시 -${CREDIT_COST.BASIC_QUERY}크레딧 차감됩니다\n*비동의시 메인화면으로 재이동됩니다`;
     setMessages((prev) => [
       ...prev,
       {
         id: generateId(),
-        text: "리포트 생성시 -3크레딧 차감됩니다\n*비동의시 메인화면으로 재이동됩니다",
+        text: consentText,
         isUser: false,
         variant: "reportConfirm",
         options: ["동의", "비동의"],
@@ -1511,6 +1526,7 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
+            <div className="rpt-v3-mobile-ai-list">{renderAiCardsVertical()}</div>
           </div>
         </div>
       );
@@ -1678,60 +1694,62 @@ export default function ChatPage() {
             </button>
           </div>
 
-          <div className="chat-sidebar-credit">
-            <span className="chat-sidebar-credit-badge">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <circle
-                  cx="8"
-                  cy="8"
-                  r="7"
-                  stroke="#3FDD90"
-                  strokeWidth="1.5"
-                />
-                <text
-                  x="8"
-                  y="11"
-                  textAnchor="middle"
-                  fill="#3FDD90"
-                  fontSize="9"
-                  fontWeight="bold"
-                >
-                  C
-                </text>
-              </svg>
-              {userCredit} 크레딧
-            </span>
-            <button
-              type="button"
-              className="chat-sidebar-credit-ad"
-              onClick={() => {
-                const shown = showRewardedAd(() => {
-                  fetchUserInfo();
-                  alert("광고 시청 완료! 2 크레딧이 지급되었습니다.");
-                });
-                if (!shown) {
-                  alert("광고를 준비 중입니다. 잠시 후 다시 시도해주세요.");
-                }
-              }}
-            >
-              광고보기 (2C)
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+          {!isGuestUser && (
+            <div className="chat-sidebar-credit">
+              <span className="chat-sidebar-credit-badge">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="7"
+                    stroke="#3FDD90"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x="8"
+                    y="11"
+                    textAnchor="middle"
+                    fill="#3FDD90"
+                    fontSize="9"
+                    fontWeight="bold"
+                  >
+                    C
+                  </text>
+                </svg>
+                {userCredit} 크레딧
+              </span>
+              <button
+                type="button"
+                className="chat-sidebar-credit-ad"
+                onClick={() => {
+                  const shown = showRewardedAd(() => {
+                    fetchUserInfo();
+                    alert("광고 시청 완료! 2 크레딧이 지급되었습니다.");
+                  });
+                  if (!shown) {
+                    alert("광고를 준비 중입니다. 잠시 후 다시 시도해주세요.");
+                  }
+                }}
               >
-                <rect x="2" y="4" width="12" height="8" rx="1" />
-                <polygon
-                  points="7,7 7,11 10,9"
-                  fill="currentColor"
-                  stroke="none"
-                />
-              </svg>
-            </button>
-          </div>
+                광고보기 (2C)
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <rect x="2" y="4" width="12" height="8" rx="1" />
+                  <polygon
+                    points="7,7 7,11 10,9"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
 
           <div className="chat-sidebar-history">
             <h3 className="chat-sidebar-history-title">채팅</h3>
@@ -2185,9 +2203,11 @@ export default function ChatPage() {
                 {productDisplayCount === 1 && (
                   <div className="rpt-top3-cta-wrap">
                     <div className="rpt-top3-cta-badge">
-                      <span className="rpt-top3-cta-credit">
-                        크레딧 -10차감
-                      </span>
+                      {!isGuestUser && (
+                        <span className="rpt-top3-cta-credit">
+                          크레딧 -10차감
+                        </span>
+                      )}
                       <span className="rpt-top3-cta-text">
                         AIQ가 추천한 최종 제품 더보기
                       </span>
@@ -2266,11 +2286,11 @@ export default function ChatPage() {
                     />
                   </button>
                 </div>
-                {reportPhase === "idle" && (
-                  <p className="chat-input-hint">
-                    *원하는 요구사항까지 입력해 주세요
-                  </p>
-                )}
+                <p
+                  className={`chat-input-hint${reportPhase !== "idle" ? " chat-input-hint--hidden" : ""}`}
+                >
+                  *원하는 요구사항까지 입력해 주세요
+                </p>
               </>
             )}
           </div>

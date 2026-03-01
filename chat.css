@@ -746,6 +746,10 @@ body.chat-page {
   margin-top: 0.35rem;
   padding-left: 1rem;
 }
+
+.chat-input-hint--hidden {
+  visibility: hidden;
+}
 .chat-send-icon {
   width: 2.5rem;
   height: 2.5rem;
@@ -2034,7 +2038,7 @@ body.chat-page {
 
 .rpt-top3-guide-btn {
   position: absolute;
-  right: 12px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   width: 30px;
@@ -2064,8 +2068,9 @@ body.chat-page {
   top: -24px;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 165px;
-  max-width: calc(100% - 20px);
+  min-width: 0;
+  width: max-content;
+  max-width: calc(100% - 40px);
   padding: 5px 10px 6px;
   border-radius: 999px;
   border: 2px solid #3FDD90;
@@ -2098,7 +2103,7 @@ body.chat-page {
 .rpt-top3-cta-credit {
   position: absolute;
   top: -9px;
-  right: 10px;
+  right: -6px;
   padding: 2px 7px;
   border-radius: 999px;
   background: #ea2b1f;
@@ -2124,7 +2129,7 @@ body.chat-page {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 12px;
   position: relative;
   box-shadow:
     0 0 18px rgba(63, 221, 144, 0.5),
@@ -2270,6 +2275,10 @@ body.chat-page {
   width: 100%;
   overflow: visible;
   max-height: none;
+}
+
+.rpt-v3-mobile-ai-list {
+  display: none;
 }
 
 .rpt-ai-card-vert-wrap {
@@ -2777,14 +2786,20 @@ body.chat-page {
     padding-top: 0;
   }
   .rpt-top3-guide-btn {
-    right: 10px;
+    right: 7px;
     top: 50%;
     transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    font-size: 0.78rem;
   }
   .rpt-top3-cta-badge {
     top: -20px;
-    min-width: 150px;
-    padding: 4px 9px 5px;
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100% - 44px);
+    padding: 4px 10px 5px;
+    display: block;
   }
   .rpt-top3-cta-badge::after {
     border-left-width: 7px;
@@ -2792,9 +2807,16 @@ body.chat-page {
     border-top-width: 14px;
   }
   .rpt-top3-cta-credit {
+    position: absolute;
     top: -8px;
-    right: 8px;
+    right: -5px;
     padding: 2px 6px;
+    font-size: 0.44rem;
+    line-height: 1;
+  }
+  .rpt-top3-cta-text {
+    display: block;
+    white-space: nowrap;
   }
   .rpt-bottom-btn--top3 {
     height: 46px;
@@ -2843,11 +2865,21 @@ body.chat-page {
   }
 
   .rpt-v3-first-right {
-    order: 1;
+    order: 2;
   }
 
   .rpt-v3-first-left {
-    order: 2;
+    order: 1;
+  }
+
+  .rpt-v3-first-ai-list {
+    display: none;
+  }
+
+  .rpt-v3-mobile-ai-list {
+    display: block;
+    order: 3;
+    margin-top: 8px;
   }
 
   .chat-bottom-area {

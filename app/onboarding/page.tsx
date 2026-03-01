@@ -301,6 +301,14 @@ export default function OnboardingPage() {
               </div>
             </div>
 
+            <p className="onboarding-intro onboarding-intro-mobile" aria-live="polite">
+              {INTRO_LINES.map((line, idx) => (
+                <span key={idx}>
+                  {line}
+                  {idx < INTRO_LINES.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
             <div className="onboarding-gauge-wrap">
               {gaugeImageError ? (
                 <div className="onboarding-gauge-fallback" aria-label={`진행률 ${progress}%`}>
