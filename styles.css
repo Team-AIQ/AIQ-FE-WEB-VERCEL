@@ -1623,6 +1623,12 @@ body::-webkit-scrollbar-thumb:hover {
   overflow: hidden;
 }
 
+/* App Store 출시 안내 모달은 가로폭을 조금 더 작게 */
+.app-store-notice-modal {
+  width: min(86vw, 640px);
+  max-width: 640px;
+}
+
 .service-intro-close {
   position: absolute;
   top: 1rem;
@@ -1838,6 +1844,10 @@ body::-webkit-scrollbar-thumb:hover {
     max-width: 700px;
     max-height: 92vh;
   }
+  .app-store-notice-modal {
+    width: min(88vw, 580px);
+    max-width: 580px;
+  }
 
   .service-intro-content {
     padding: 2rem 1.75rem 1.75rem;
@@ -1863,6 +1873,10 @@ body::-webkit-scrollbar-thumb:hover {
     width: 95%;
     max-height: 92vh;
     border-radius: 8px;
+  }
+  .app-store-notice-modal {
+    width: 90%;
+    max-width: 460px;
   }
 
   .service-intro-content {
@@ -1932,6 +1946,10 @@ body::-webkit-scrollbar-thumb:hover {
     width: 96%;
     max-height: 90vh;
     border-radius: 6px;
+  }
+  .app-store-notice-modal {
+    width: 92%;
+    max-width: 360px;
   }
 
   .service-intro-content {

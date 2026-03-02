@@ -63,7 +63,6 @@ export default function OnboardingPage() {
   const [clickedStep2Button, setClickedStep2Button] = useState(false);
   const [clickedStep3Button, setClickedStep3Button] = useState(false);
   const [clickedStep4Button, setClickedStep4Button] = useState(false);
-  const [gaugeImageError, setGaugeImageError] = useState(false);
 
   const lastUserMsgRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -199,20 +198,8 @@ export default function OnboardingPage() {
     router.replace("/chat");
   };
 
-  const gaugeSrc =
-    progress === 0
-      ? "/image/onboarding-gauge-0.png"
-      : progress === 25
-        ? "/image/onboarding-gauge-25.png"
-        : progress === 50
-          ? "/image/onboarding-gauge-50.png"
-          : progress === 75
-            ? "/image/onboarding-gauge-75.png"
-            : "/image/onboarding-gauge-100.png";
-
-  useEffect(() => {
-    setGaugeImageError(false);
-  }, [gaugeSrc]);
+  const gaugeFillWidth =
+    progress === 100 ? "calc(100% - 10px)" : `${progress}%`;
 
   return (
     <>
@@ -301,7 +288,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <p className="onboarding-intro onboarding-intro-mobile" aria-live="polite">
+            <p
+              className="onboarding-intro onboarding-intro-mobile"
+              aria-live="polite"
+            >
               {INTRO_LINES.map((line, idx) => (
                 <span key={idx}>
                   {line}
@@ -310,25 +300,20 @@ export default function OnboardingPage() {
               ))}
             </p>
             <div className="onboarding-gauge-wrap">
-              {gaugeImageError ? (
-                <div className="onboarding-gauge-fallback" aria-label={`진행률 ${progress}%`}>
-                  <div className="onboarding-gauge-fallback-track">
-                    <div
-                      className="onboarding-gauge-fallback-fill"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <span className="onboarding-gauge-fallback-text">{progress}%</span>
+              <div
+                className="onboarding-gauge-fallback"
+                aria-label={`진행률 ${progress}%`}
+              >
+                <div className="onboarding-gauge-fallback-track">
+                  <div
+                    className="onboarding-gauge-fallback-fill"
+                    style={{ width: gaugeFillWidth }}
+                  />
                 </div>
-              ) : (
-                <img
-                  key={progress}
-                  src={gaugeSrc}
-                  alt={`진행률 ${progress}%`}
-                  className="onboarding-gauge-img"
-                  onError={() => setGaugeImageError(true)}
-                />
-              )}
+                <span className="onboarding-gauge-fallback-text">
+                  {progress}%
+                </span>
+              </div>
             </div>
           </div>
 
