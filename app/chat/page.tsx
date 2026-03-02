@@ -342,15 +342,21 @@ export default function ChatPage() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(AI_TOGGLE_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (
-          typeof parsed?.chatgpt === "boolean" &&
-          typeof parsed?.gemini === "boolean" &&
-          typeof parsed?.perplexity === "boolean"
-        ) {
-          setAiToggles(parsed);
+      const guest = isGuest();
+      if (guest) {
+        // 비회원 체험은 항상 3개 모델 모두 호출되도록 고정
+        setAiToggles({ chatgpt: true, gemini: true, perplexity: true });
+      } else {
+        const raw = window.localStorage.getItem(AI_TOGGLE_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (
+            typeof parsed?.chatgpt === "boolean" &&
+            typeof parsed?.gemini === "boolean" &&
+            typeof parsed?.perplexity === "boolean"
+          ) {
+            setAiToggles(parsed);
+          }
         }
       }
     } catch (e) {
@@ -830,23 +836,34 @@ export default function ChatPage() {
 
     // AI 토글 상태에 따라 models 파라미터 생성
     const toggles = aiTogglesRef.current;
-    const modelList: string[] = [];
-    if (toggles.chatgpt) modelList.push("GPT");
-    if (toggles.gemini) modelList.push("Gemini");
-    if (toggles.perplexity) modelList.push("Perplexity");
+    const modelList: string[] = isGuestUser
+      ? ["GPT", "Gemini", "Perplexity"]
+      : [
+          toggles.chatgpt ? "GPT" : "",
+          toggles.gemini ? "Gemini" : "",
+          toggles.perplexity ? "Perplexity" : "",
+        ].filter(Boolean);
 
     const modelsParam =
       modelList.length > 0 ? `?models=${modelList.join(",")}` : "";
-    const streamUrlWithModels = `${baseUrl}/api/v1/aiq/stream/${queryId}${modelsParam}`;
-    const streamUrlWithoutModels = `${baseUrl}/api/v1/aiq/stream/${queryId}`;
+    const streamUrl = `${baseUrl}/api/v1/aiq/stream/${queryId}${modelsParam}`;
 
     const token = getAccessToken();
     if (!token) {
       console.error("토큰이 없습니다. SSE 연결 불가");
+      setReportPhase("idle");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          text: "로그인 정보가 유효하지 않습니다.",
+          isUser: false,
+        },
+      ]);
       return;
     }
 
-    console.log("SSE 연결 시도:", streamUrlWithModels);
+    console.log("SSE 연결 시도:", streamUrl);
 
     // 중복 스트림 연결 방지
     if (eventSourceRef.current) {
@@ -854,66 +871,9 @@ export default function ChatPage() {
       eventSourceRef.current = null;
     }
 
-    // 서버가 500을 반환하는 경우 EventSource가 재시도하며 콘솔 에러를 반복할 수 있어,
-    // 먼저 일반 fetch로 상태를 확인한 뒤 정상일 때만 스트림을 연다.
-    let streamUrlToUse = streamUrlWithModels;
-    try {
-      const precheckRes = await fetch(streamUrlWithModels, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "text/event-stream",
-        },
-        credentials: "include",
-      });
-
-      if (!precheckRes.ok) {
-        console.error(`SSE precheck 실패(모델 포함): ${precheckRes.status}`);
-
-        // 백엔드가 models 파라미터를 처리하지 못하는 환경 대비
-        const fallbackRes = await fetch(streamUrlWithoutModels, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "text/event-stream",
-          },
-          credentials: "include",
-        });
-
-        if (!fallbackRes.ok) {
-          console.error(`SSE precheck 실패(모델 미포함): ${fallbackRes.status}`);
-          setReportPhase("idle");
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateId(),
-              text: "리포트 생성 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-              isUser: false,
-            },
-          ]);
-          return;
-        }
-
-        streamUrlToUse = streamUrlWithoutModels;
-        console.warn("SSE fallback 사용: models 파라미터 없이 연결합니다.");
-      }
-    } catch (precheckError) {
-      console.error("SSE precheck 네트워크 오류:", precheckError);
-      setReportPhase("idle");
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: generateId(),
-          text: "네트워크 오류로 리포트를 생성하지 못했습니다. 다시 시도해주세요.",
-          isUser: false,
-        },
-      ]);
-      return;
-    }
-
     const EventSourcePolyfill =
       require("event-source-polyfill").EventSourcePolyfill;
-    const eventSource = new EventSourcePolyfill(streamUrlToUse, {
+    const eventSource = new EventSourcePolyfill(streamUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -925,6 +885,7 @@ export default function ChatPage() {
 
     let aiResults: Record<string, AiResponse> = {};
     let isFinished = false;
+    let finalReportHandled = false;
 
     const processData = (rawData: string) => {
       if (cancelFlowRef.current) return;
@@ -943,11 +904,15 @@ export default function ChatPage() {
             : lowerName.includes("gemini")
               ? "gemini"
               : "perplexity";
-          setCompletedAis((prev) => [...prev, modelKey]);
+          setCompletedAis((prev) =>
+            prev.includes(modelKey) ? prev : [...prev, modelKey],
+          );
         }
 
         // 2. 최종 리포트 → 인라인으로 채팅에 표시
         if (parsed.consensus && parsed.topProducts) {
+          if (finalReportHandled) return;
+          finalReportHandled = true;
           console.log("최종 리포트 수신 완료");
 
           setMessages((prev) => [
@@ -1012,6 +977,7 @@ export default function ChatPage() {
       console.log("백엔드로부터 종료 신호를 받았습니다.");
       isFinished = true;
       eventSource.close();
+      eventSourceRef.current = null;
     });
 
     eventSource.onopen = () => {
@@ -1030,12 +996,30 @@ export default function ChatPage() {
       }
       console.error("SSE 에러 발생:", err);
       eventSource.close();
+      eventSourceRef.current = null;
       setReportPhase("idle");
+
+      let errorMessage = "리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      const rawError = String(
+        err?.data || err?.message || err?.statusText || "",
+      );
+      try {
+        const parsedError = rawError ? JSON.parse(rawError) : null;
+        const msg = String(parsedError?.message || parsedError?.error || "");
+        if (/이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(msg)) {
+          errorMessage = "이미 생성된 리포트입니다. 히스토리에서 확인해주세요.";
+        }
+      } catch {
+        if (/이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(rawError)) {
+          errorMessage = "이미 생성된 리포트입니다. 히스토리에서 확인해주세요.";
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: generateId(),
-          text: "리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+          text: errorMessage,
           isUser: false,
         },
       ]);
