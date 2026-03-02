@@ -208,8 +208,8 @@ body.onboarding-page {
   max-width: 50%;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: transparent;
 
   /* 🔥 오른쪽 여백 늘림 */
@@ -276,49 +276,63 @@ body.onboarding-page {
 .onboarding-gauge-wrap {
   position: relative;
   width: 100%;
+  height: 56px;
   display: flex;
   justify-content: center; /* 채팅 기준 중앙 정렬 */
+  align-items: center;
   margin-bottom: 0.25rem;
 }
 
 .onboarding-gauge-img {
   width: min(90%, 326px); /* 반응형 + 최대 326px */
-  height: auto;
+  height: 56px;
   display: block;
+  object-fit: contain;
 }
 
 .onboarding-gauge-fallback {
+  position: relative;
   width: min(90%, 326px);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  height: 56px;
+  display: block;
 }
 
 .onboarding-gauge-fallback-track {
-  flex: 1;
-  height: 10px;
-  border: 1px solid rgba(63, 221, 144, 0.65);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 24px;
+  border: 2px solid rgba(101, 248, 195, 0.85);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.7);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .onboarding-gauge-fallback-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2fcf84, #45d38e);
+  height: 12px;
+  margin: 5px;
+  background: #66efb7;
+  box-shadow: 0 0 10px rgba(102, 239, 183, 0.25);
 }
 
 .onboarding-gauge-fallback-text {
-  flex-shrink: 0;
-  font-size: 0.72rem;
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  font-size: 1rem;
   font-family: "Galmuri9", sans-serif;
-  color: rgba(255, 255, 255, 0.85);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #66efb7;
+  text-shadow: 0 0 8px rgba(102, 239, 183, 0.2);
 }
 
 /* 채팅창: 높이 제한으로 내부만 스크롤(페이지 스크롤 아님) */
 .onboarding-chat-wrap {
   position: relative;
-  flex: 1;
+  height: 100%;
   min-height: 200px;
   display: flex;
   flex-direction: column;
@@ -547,6 +561,8 @@ body.onboarding-page {
   gap: 16px;
   margin-top: 24px;
   width: 100%;
+  min-height: 54px;
+  align-items: stretch;
 }
 
 .onboarding-intro-mobile {
@@ -562,7 +578,12 @@ body.onboarding-page {
 
 .onboarding-choice-btn {
   width: 100%;
-  padding: 1rem 1.5rem;
+  height: 54px;
+  min-height: 54px;
+  padding: 0 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   border: none;
   background: #f2f2f2;
@@ -576,6 +597,10 @@ body.onboarding-page {
     box-shadow 0.15s ease,
     opacity 0.2s ease;
   box-shadow: 0 6px 24px rgba(63, 221, 144, 0.18);
+}
+
+.onboarding-choice-btn--long {
+  white-space: nowrap;
 }
 
 /* hover 시 살짝 떠오르는 느낌만 */
@@ -625,12 +650,12 @@ body.onboarding-page {
   }
 
   .onboarding-right {
-    flex: none;
     width: 100%;
     max-width: 100%;
-    flex: 1;
     min-height: 0;
     padding: 0 0.25rem;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   .onboarding-right-top {
@@ -661,17 +686,30 @@ body.onboarding-page {
     margin-top: 0.5rem;
     gap: 10px;
     flex-wrap: wrap;
+    min-height: 48px;
   }
 
   .onboarding-choice-btn {
-    padding: 0.82rem 1rem;
+    height: 48px;
+    min-height: 48px;
+    padding: 0 1rem;
     font-size: 0.86rem;
-    white-space: normal;
+    white-space: nowrap;
     line-height: 1.35;
   }
 }
 
 @media (max-width: 600px) {
+  .onboarding-left {
+    display: none;
+  }
+
+  .onboarding-right {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+  }
+
   .onboarding-header {
     top: max(0.75rem, env(safe-area-inset-top));
     left: max(1rem, env(safe-area-inset-left));
@@ -687,9 +725,7 @@ body.onboarding-page {
     padding-top: calc(max(3.45rem, env(safe-area-inset-top)) + 0.05rem);
     padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
     gap: 0.4rem;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
   }
 
   .onboarding-character-wrap {
@@ -723,10 +759,33 @@ body.onboarding-page {
 
   .onboarding-gauge-img {
     width: min(86%, 300px);
+    height: 48px;
   }
 
   .onboarding-gauge-fallback {
     width: min(86%, 300px);
+    height: 48px;
+  }
+
+  .onboarding-gauge-wrap {
+    height: 48px;
+  }
+
+  .onboarding-gauge-fallback-track {
+    bottom: 6px;
+    height: 20px;
+    border-width: 1.5px;
+  }
+
+  .onboarding-gauge-fallback-fill {
+    height: 10px;
+    margin: 4px;
+  }
+
+  .onboarding-gauge-fallback-text {
+    right: 2px;
+    top: 1px;
+    font-size: 0.88rem;
   }
 
   .onboarding-left {
@@ -785,7 +844,7 @@ body.onboarding-page {
 
   .onboarding-chat {
     padding: 0.72rem 0.68rem;
-    min-height: 300px;
+    min-height: 0;
   }
 
   .onboarding-msg-bubble,
@@ -803,11 +862,14 @@ body.onboarding-page {
   .onboarding-choices {
     gap: 8px;
     margin-top: 0.4rem;
+    min-height: 46px;
   }
 
   .onboarding-choice-btn {
     font-size: 0.8rem;
-    padding: 0.72rem 0.85rem;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 0.85rem;
   }
 }
 

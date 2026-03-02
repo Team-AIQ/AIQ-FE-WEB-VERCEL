@@ -780,7 +780,7 @@ export default function HomePage() {
             aria-hidden="true"
           />
           <div
-            className="service-intro-modal"
+            className="service-intro-modal app-store-notice-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="app-store-notice-title"
