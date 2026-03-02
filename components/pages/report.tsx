@@ -35,9 +35,9 @@ interface FinalReport {
 }
 
 const AI_MODELS = [
-  { key: "gpt", label: "Chat GPT", logo: "/image/gpt-logo.png" },
-  { key: "gemini", label: "Gemini", logo: "/image/gemini-logo.png" },
-  { key: "perplexity", label: "Perplexity", logo: "/image/perp-logo.png" },
+  { key: "gpt", label: "Chat GPT", logo: "/image/openai.svg?v=2" },
+  { key: "gemini", label: "Gemini", logo: "/image/gemini-color.svg?v=2" },
+  { key: "perplexity", label: "Perplexity", logo: "/image/perplexity-color.svg?v=2" },
 ];
 
 function renderFormattedText(text: string) {
@@ -60,9 +60,10 @@ export default function ReportPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [report, setReport] = useState<FinalReport | null>(null);
-  const [aiResponses, setAiResponses] = useState<Record<string, AiResponse> | null>(
-    null
-  );
+  const [aiResponses, setAiResponses] = useState<Record<
+    string,
+    AiResponse
+  > | null>(null);
   const [selectedAiKey, setSelectedAiKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function ReportPage() {
       setAiResponses(parsedAi);
 
       const defaultModel = AI_MODELS.find((m) =>
-        Object.keys(parsedAi).some((k) => k.toLowerCase().includes(m.key))
+        Object.keys(parsedAi).some((k) => k.toLowerCase().includes(m.key)),
       );
       if (defaultModel) setSelectedAiKey(defaultModel.key);
     }
@@ -104,7 +105,7 @@ export default function ReportPage() {
   const findAiData = (key: string) => {
     if (!aiResponses) return null;
     const entry = Object.entries(aiResponses).find(([k]) =>
-      k.toLowerCase().includes(key)
+      k.toLowerCase().includes(key),
     );
     return entry ? { modelName: entry[0], aiData: entry[1] } : null;
   };
@@ -144,7 +145,9 @@ export default function ReportPage() {
                 {top1 ? (
                   <div className="rpt-main-product">
                     <div className="rpt-product-rank">추천 제품 TOP 1</div>
-                    <div className="rpt-main-product-name">{top1.productName}</div>
+                    <div className="rpt-main-product-name">
+                      {top1.productName}
+                    </div>
 
                     <div className="rpt-main-product-image-wrap">
                       {top1.productImage ? (
@@ -173,13 +176,17 @@ export default function ReportPage() {
 
                     {top1.price && (
                       <>
-                        <div className="rpt-main-price-label">(시중 판매 평균가)</div>
+                        <div className="rpt-main-price-label">
+                          (시중 판매 평균가)
+                        </div>
                         <div className="rpt-main-price">{top1.price}</div>
                       </>
                     )}
 
                     {top1.comparativeAnalysis && (
-                      <p className="rpt-main-analysis">{top1.comparativeAnalysis}</p>
+                      <p className="rpt-main-analysis">
+                        {top1.comparativeAnalysis}
+                      </p>
                     )}
 
                     {top1.lowestPriceLink && (
@@ -225,7 +232,9 @@ export default function ReportPage() {
                         {found ? (
                           <div className="rpt-ai-card-body-new">
                             <div className="rpt-ai-card-item-new">
-                              <strong>{preview?.productName || "추천 결과 확인"}</strong>
+                              <strong>
+                                {preview?.productName || "추천 결과 확인"}
+                              </strong>
                               {preview?.targetAudience && (
                                 <p className="rpt-ai-card-audience">
                                   {preview.targetAudience}
@@ -297,15 +306,6 @@ export default function ReportPage() {
                         <h4 className="rpt-panel-sec-t">구매 스펙 가이드</h4>
                         <div className="rpt-panel-sec-body">
                           {renderFormattedText(selectedAi.aiData.specGuide)}
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedAi.aiData.finalWord && (
-                      <div className="rpt-panel-sec">
-                        <h4 className="rpt-panel-sec-t">종합 의견</h4>
-                        <div className="rpt-panel-sec-body">
-                          {renderFormattedText(selectedAi.aiData.finalWord)}
                         </div>
                       </div>
                     )}

@@ -157,9 +157,9 @@ const AI_ICONS: Record<string, JSX.Element> = {
 };
 
 const AI_MODELS = [
-  { key: "gpt", label: "Chat GPT", logo: "/image/gpt-logo.png" },
-  { key: "gemini", label: "Gemini", logo: "/image/gemini-logo.png" },
-  { key: "perplexity", label: "Perplexity", logo: "/image/perp-logo.png" },
+  { key: "gpt", label: "Chat GPT", logo: "/image/openai.svg?v=2" },
+  { key: "gemini", label: "Gemini", logo: "/image/gemini-color.svg?v=2" },
+  { key: "perplexity", label: "Perplexity", logo: "/image/perplexity-color.svg?v=2" },
 ];
 
 // 크레딧 소진 비용
@@ -513,7 +513,8 @@ export default function ChatPage() {
 
       const res = await apiFetch(`/api/v1/curation/history/${queryId}/report`);
       if (!res.ok) {
-        let errorMessage = "저장된 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+        let errorMessage =
+          "저장된 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
         try {
           const errorJson = await res.json();
           const rawMessage =
@@ -521,15 +522,21 @@ export default function ChatPage() {
               ? errorJson.message.trim()
               : "";
 
-          if (/query did not return a unique result|non.?unique result/i.test(rawMessage)) {
+          if (
+            /query did not return a unique result|non.?unique result/i.test(
+              rawMessage,
+            )
+          ) {
             errorMessage =
               "보고서 데이터가 중복되어 불러오지 못했습니다. 새로 리포트를 생성해 주세요.";
           } else if (res.status === 404) {
             errorMessage = "저장된 보고서를 찾을 수 없습니다.";
           } else if (res.status === 400) {
-            errorMessage = "요청한 보고서를 불러올 수 없습니다. 다시 시도해 주세요.";
+            errorMessage =
+              "요청한 보고서를 불러올 수 없습니다. 다시 시도해 주세요.";
           } else if (res.status >= 500) {
-            errorMessage = "서버 오류로 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+            errorMessage =
+              "서버 오류로 보고서를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
           }
         } catch {
           // ignore parse errors and keep default message
@@ -999,18 +1006,25 @@ export default function ChatPage() {
       eventSourceRef.current = null;
       setReportPhase("idle");
 
-      let errorMessage = "리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      let errorMessage =
+        "리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
       const rawError = String(
         err?.data || err?.message || err?.statusText || "",
       );
       try {
         const parsedError = rawError ? JSON.parse(rawError) : null;
         const msg = String(parsedError?.message || parsedError?.error || "");
-        if (/이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(msg)) {
+        if (
+          /이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(msg)
+        ) {
           errorMessage = "이미 생성된 리포트입니다. 히스토리에서 확인해주세요.";
         }
       } catch {
-        if (/이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(rawError)) {
+        if (
+          /이미 생성된 보고서|이미 생성된 리포트|already.*report/i.test(
+            rawError,
+          )
+        ) {
           errorMessage = "이미 생성된 리포트입니다. 히스토리에서 확인해주세요.";
         }
       }
@@ -1229,14 +1243,6 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-          {panelAi!.aiData.finalWord && (
-            <div className="rpt-panel-sec">
-              <h4 className="rpt-panel-sec-t">종합 의견</h4>
-              <div className="rpt-panel-sec-body">
-                {renderFormattedText(panelAi!.aiData.finalWord)}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -1274,7 +1280,9 @@ export default function ChatPage() {
                 {recIdx + 1}. {rec.productName || rec.targetAudience}
               </h4>
               {rec.productCode && (
-                <p className="rpt-panel-rec-code">모델 코드: {rec.productCode}</p>
+                <p className="rpt-panel-rec-code">
+                  모델 코드: {rec.productCode}
+                </p>
               )}
               {rec.productName && rec.targetAudience && (
                 <p className="rpt-panel-rec-audience">
@@ -1293,14 +1301,6 @@ export default function ChatPage() {
               <h4 className="rpt-panel-sec-t">구매 스펙 가이드</h4>
               <div className="rpt-panel-sec-body">
                 {renderFormattedText(aiData.specGuide)}
-              </div>
-            </div>
-          )}
-          {aiData.finalWord && (
-            <div className="rpt-panel-sec">
-              <h4 className="rpt-panel-sec-t">종합 의견</h4>
-              <div className="rpt-panel-sec-body">
-                {renderFormattedText(aiData.finalWord)}
               </div>
             </div>
           )}
@@ -1510,7 +1510,9 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-            <div className="rpt-v3-mobile-ai-list">{renderAiCardsVertical()}</div>
+            <div className="rpt-v3-mobile-ai-list">
+              {renderAiCardsVertical()}
+            </div>
           </div>
         </div>
       );
