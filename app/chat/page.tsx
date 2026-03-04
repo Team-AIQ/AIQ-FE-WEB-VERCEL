@@ -67,6 +67,7 @@ interface Message {
   variant?: "default" | "sectorQuestion" | "report" | "reportConfirm";
   progressLabel?: string;
   options?: string[];
+  isHistory?: boolean;
 
   reportData?: FinalReport;
   aiResponses?: Record<string, AiResponse>;
@@ -227,9 +228,67 @@ export default function ChatPage() {
   const userCreditRef = useRef(0);
   const submitAbortRef = useRef<AbortController | null>(null);
   const cancelFlowRef = useRef(false);
+  const historyAiCacheRef = useRef<Record<number, Record<string, AiResponse>>>(
+    {},
+  );
 
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  const saveAiResponsesCache = (
+    queryId: number,
+    aiResponses: Record<string, AiResponse>,
+  ) => {
+    if (!queryId || Object.keys(aiResponses).length === 0) return;
+    historyAiCacheRef.current[queryId] = aiResponses;
+    try {
+      sessionStorage.setItem(
+        `aiq_history_ai_${queryId}`,
+        JSON.stringify(aiResponses),
+      );
+    } catch {
+      // ignore storage failures
+    }
+  };
+
+  const loadAiResponsesCache = (
+    queryId: number,
+  ): Record<string, AiResponse> | null => {
+    const inMemory = historyAiCacheRef.current[queryId];
+    if (inMemory && Object.keys(inMemory).length > 0) return inMemory;
+    try {
+      const raw = sessionStorage.getItem(`aiq_history_ai_${queryId}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        return parsed as Record<string, AiResponse>;
+      }
+    } catch {
+      // ignore parse/storage errors
+    }
+    return null;
+  };
+
+  const saveTop3UsageCache = (queryId: number, used: boolean) => {
+    if (!queryId) return;
+    try {
+      sessionStorage.setItem(`aiq_history_top3_${queryId}`, used ? "1" : "0");
+    } catch {
+      // ignore storage failures
+    }
+  };
+
+  const loadTop3UsageCache = (queryId: number): boolean | null => {
+    if (!queryId) return null;
+    try {
+      const raw = sessionStorage.getItem(`aiq_history_top3_${queryId}`);
+      if (raw === "1") return true;
+      if (raw === "0") return false;
+    } catch {
+      // ignore storage failures
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -554,28 +613,164 @@ export default function ChatPage() {
         return;
       }
       const json = await res.json();
-      const report: FinalReport = json.data;
+      const parseMaybeJson = (value: any) => {
+        if (typeof value !== "string") return value;
+        try {
+          return JSON.parse(value);
+        } catch {
+          return value;
+        }
+      };
+      const payload =
+        json?.result ??
+        json?.data?.result ??
+        json?.data ??
+        {};
+      const finalReportCandidate = parseMaybeJson(
+        payload?.finalReport ?? payload?.report ?? payload,
+      );
+      const report: FinalReport = finalReportCandidate as FinalReport;
+      const normalizeToArray = (value: any): any[] => {
+        const parsed = parseMaybeJson(value);
+        if (!parsed) return [];
+        if (Array.isArray(parsed)) return parsed;
+        if (typeof parsed === "object") {
+          // { GPT: {...}, Gemini: {...} } 형태도 허용
+          return Object.entries(parsed).map(([k, v]) => {
+            if (v && typeof v === "object" && !Array.isArray(v)) {
+              return { modelName: (v as any).modelName ?? k, ...(v as any) };
+            }
+            return { modelName: k, content: v };
+          });
+        }
+        return [];
+      };
 
-      // 히스토리: 사용자 질문 + 통합 보고서만 표시 (AI 개별 답변 없음)
+      const individualReportsRaw = [
+        ...normalizeToArray(payload?.individualReports),
+        ...normalizeToArray(payload?.individualReport),
+        ...normalizeToArray(payload?.aiResponses),
+        ...normalizeToArray(payload?.responses),
+        ...normalizeToArray(payload?.individual),
+        ...normalizeToArray(payload?.finalReport?.individualReports),
+      ] as any[];
+      const historyAiResponses: Record<string, AiResponse> = {};
+
+      individualReportsRaw.forEach((itemRaw: any, index: number) => {
+        const item = parseMaybeJson(itemRaw?.content ?? itemRaw?.report ?? itemRaw);
+        const inferredModel = ["GPT", "Gemini", "Perplexity"][index] ?? "";
+        const modelName = String(
+          item?.modelName ||
+            item?.model ||
+            item?.provider ||
+            item?.aiModel ||
+            inferredModel ||
+            "",
+        ).trim();
+        if (!modelName) return;
+
+        const recommendations = Array.isArray(item?.recommendations)
+          ? item.recommendations
+          : Array.isArray(item?.topProducts)
+            ? item.topProducts
+            : Array.isArray(item?.products)
+              ? item.products
+              : Array.isArray(item?.items)
+                ? item.items
+                : Array.isArray(item?.result?.recommendations)
+                  ? item.result.recommendations
+                  : Array.isArray(item?.data?.recommendations)
+                    ? item.data.recommendations
+              : [];
+
+        const normalizedModelName =
+          modelName.toLowerCase().includes("gpt")
+            ? "GPT"
+            : modelName.toLowerCase().includes("gemini")
+              ? "Gemini"
+              : modelName.toLowerCase().includes("perplexity")
+                ? "Perplexity"
+                : modelName;
+
+        historyAiResponses[modelName] = {
+          recommendations,
+          specGuide: String(item?.specGuide || item?.analysis || ""),
+          finalWord: String(item?.finalWord || item?.summary || ""),
+        };
+
+        // 모델명이 들쭉날쭉해도 동일 키로 접근 가능하게 정규화 키를 같이 보관
+        if (!historyAiResponses[normalizedModelName]) {
+          historyAiResponses[normalizedModelName] = {
+            recommendations,
+            specGuide: String(item?.specGuide || item?.analysis || ""),
+            finalWord: String(item?.finalWord || item?.summary || ""),
+          };
+        }
+      });
+
+      if (Object.keys(historyAiResponses).length === 0) {
+        const cached = loadAiResponsesCache(queryId);
+        if (cached && Object.keys(cached).length > 0) {
+          Object.assign(historyAiResponses, cached);
+        }
+      }
+      if (Object.keys(historyAiResponses).length > 0) {
+        saveAiResponsesCache(queryId, historyAiResponses);
+      }
+
+      if (Object.keys(historyAiResponses).length === 0) {
+        console.warn("히스토리 individualReports 파싱 결과가 비어 있습니다.", {
+          queryId,
+          payload,
+        });
+      }
+
       msgs.push({
         id: Date.now() + Math.random() + 1,
         text: "",
         isUser: false,
         variant: "report",
+        isHistory: true,
         reportData: report,
-        // 히스토리에서는 aiResponses를 넘기지 않아 AI 카드가 표시되지 않음
+        aiResponses:
+          Object.keys(historyAiResponses).length > 0
+            ? historyAiResponses
+            : undefined,
       });
 
-      // 저장된 제품 수에 맞게 자동 확장 (사용자가 비교후보 3개를 사용했다면 3개 표시)
+      // 히스토리 Top3 노출:
+      // 1) 백엔드 플래그 우선
+      // 2) 없으면 프론트 캐시(실시간에서 TOP3 사용한 queryId)
+      const rawTop3Flag =
+        payload?.isTop3Unlocked ??
+        payload?.usedTop3 ??
+        payload?.top3Unlocked ??
+        payload?.isTop3Used;
+      const cachedTop3Usage = loadTop3UsageCache(queryId);
+      const top3Flag = Boolean(
+        rawTop3Flag === true || (rawTop3Flag == null && cachedTop3Usage === true),
+      );
+      const shouldShowTop3 = top3Flag === true;
+      if (rawTop3Flag === true) {
+        saveTop3UsageCache(queryId, true);
+      }
       setProductDisplayCount(
-        report.topProducts && report.topProducts.length > 1
-          ? report.topProducts.length
+        shouldShowTop3 && report?.topProducts?.length
+          ? Math.min(3, report.topProducts.length)
           : 1,
       );
       setShowWelcome(false);
       setReportPhase("report");
       setPostReportMode(null);
-      setSelectedAiKey(null);
+      const firstHistoryModelName = Object.keys(historyAiResponses)[0] ?? "";
+      const firstHistoryModelKey = firstHistoryModelName.toLowerCase().includes("gpt")
+        ? "gpt"
+        : firstHistoryModelName.toLowerCase().includes("gemini")
+          ? "gemini"
+          : firstHistoryModelName.toLowerCase().includes("perplexity")
+            ? "perplexity"
+            : null;
+      setSelectedAiKey(firstHistoryModelKey);
       setMessages(msgs);
     } catch (e) {
       console.error("보고서 조회 실패:", e);
@@ -898,12 +1093,35 @@ export default function ChatPage() {
       if (cancelFlowRef.current) return;
       try {
         const parsed = JSON.parse(rawData);
+        const resultPayload = parsed?.result ?? null;
+        const aiPayload =
+          resultPayload?.recommendations
+            ? resultPayload
+            : parsed?.recommendations
+              ? parsed
+              : null;
+        const finalReportPayload =
+          resultPayload?.finalReport && resultPayload.finalReport.topProducts
+            ? resultPayload.finalReport
+            : resultPayload?.consensus && resultPayload?.topProducts
+              ? resultPayload
+              : parsed?.consensus && parsed?.topProducts
+                ? parsed
+                : null;
 
         // 1. 개별 AI 추천 결과
-        if (parsed.recommendations) {
+        if (aiPayload) {
           const modelName =
-            parsed.modelName || `Model-${Object.keys(aiResults).length + 1}`;
-          aiResults[modelName] = parsed;
+            aiPayload.modelName ||
+            parsed?.modelName ||
+            `Model-${Object.keys(aiResults).length + 1}`;
+          aiResults[modelName] = {
+            recommendations: Array.isArray(aiPayload.recommendations)
+              ? aiPayload.recommendations
+              : [],
+            specGuide: String(aiPayload.specGuide || ""),
+            finalWord: String(aiPayload.finalWord || ""),
+          };
           console.log(`[${modelName}] 분석 완료`);
           const lowerName = modelName.toLowerCase();
           const modelKey = lowerName.includes("gpt")
@@ -917,10 +1135,11 @@ export default function ChatPage() {
         }
 
         // 2. 최종 리포트 → 인라인으로 채팅에 표시
-        if (parsed.consensus && parsed.topProducts) {
+        if (finalReportPayload) {
           if (finalReportHandled) return;
           finalReportHandled = true;
           console.log("최종 리포트 수신 완료");
+          saveAiResponsesCache(queryId, { ...aiResults });
 
           setMessages((prev) => [
             ...prev,
@@ -929,7 +1148,7 @@ export default function ChatPage() {
               text: "",
               isUser: false,
               variant: "report",
-              reportData: parsed as FinalReport,
+              reportData: finalReportPayload as FinalReport,
               aiResponses: { ...aiResults },
             },
           ]);
@@ -1463,7 +1682,7 @@ export default function ChatPage() {
 
     const isExpandedTop3 = productDisplayCount === 3;
 
-    const isHistoryReport = !hasAiResponses;
+    const isHistoryReport = msg.isHistory === true || !hasAiResponses;
 
     if (hasAiResponses && !isExpandedTop3) {
       return (
@@ -1592,18 +1811,28 @@ export default function ChatPage() {
           </div>
         )}
 
-        {hasAiResponses && !isExpandedTop3 ? (
+        {hasAiResponses && (!isExpandedTop3 || isHistoryReport) ? (
           <div className="rpt-v3-ai-section-box">
             <div className="rpt-v3-bottom">
-              <div className="rpt-v3-bottom-left">
-                {renderAiCardsVertical()}
-              </div>
+              <div className="rpt-v3-bottom-left">{renderAiCardsVertical()}</div>
               <div className="rpt-v3-bottom-right">
-                {panelAi ? renderAiPanel() : renderConsensus()}
+                {isExpandedTop3 ? (
+                  panelAi ? (
+                    renderAiPanel()
+                  ) : (
+                    <div className="rpt-v3-ai-placeholder">
+                      AI 답변 카드에서 상세보기를 눌러 개별 분석을 확인하세요.
+                    </div>
+                  )
+                ) : panelAi ? (
+                  renderAiPanel()
+                ) : (
+                  renderConsensus()
+                )}
               </div>
             </div>
           </div>
-        ) : !hasAiResponses && isExpandedTop3 ? (
+        ) : !hasAiResponses ? (
           <div className="rpt-v3-history-consensus">{renderConsensus()}</div>
         ) : null}
       </div>
@@ -2205,6 +2434,10 @@ export default function ChatPage() {
                       onClick={async () => {
                         const ok = await useTop3Credit();
                         if (!ok) return;
+                        const qId = continueQueryId || curationData?.queryId;
+                        if (qId) {
+                          saveTop3UsageCache(qId, true);
+                        }
 
                         reportMsgRef.current?.scrollIntoView({
                           behavior: "smooth",
