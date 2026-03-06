@@ -2729,6 +2729,19 @@ body.chat-page {
 
 /* ========== 반응형 ========== */
 @media (max-width: 1024px) {
+  .rpt-shell {
+    padding: 16px;
+  }
+  .rpt-grid.is-open {
+    grid-template-columns: 1fr;
+  }
+  .rpt-leftcol {
+    grid-template-rows: auto auto;
+    overflow: visible;
+  }
+  .rpt-panel {
+    max-height: 58vh;
+  }
   .chat-messages--report {
     max-width: 100%;
   }
@@ -2855,6 +2868,51 @@ body.chat-page {
 }
 
 @media (max-width: 600px) {
+  .rpt-container {
+    max-width: none;
+  }
+
+  .rpt-shell {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .rpt-grid {
+    gap: 12px;
+  }
+
+  .rpt-main-product {
+    padding: 12px;
+    gap: 7px;
+  }
+
+  .rpt-main-product-image-wrap {
+    aspect-ratio: 1 / 1;
+  }
+
+  .rpt-main-price {
+    font-size: clamp(1.35rem, 7vw, 1.7rem);
+  }
+
+  .chat-bottom-btns,
+  .chat-continue-btns {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chat-bottom-btns > *,
+  .chat-continue-btns > * {
+    width: 100%;
+  }
+
+  .rpt-top3-cta-wrap {
+    width: 100%;
+  }
+
+  .rpt-bottom-btn {
+    width: 100%;
+  }
+
   .rpt-v3-first-panel-desktop {
     display: none;
   }
