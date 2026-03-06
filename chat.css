@@ -2898,19 +2898,24 @@ body.chat-page {
   .chat-continue-btns {
     flex-direction: column;
     gap: 10px;
+    align-items: stretch;
   }
 
   .chat-bottom-btns > *,
   .chat-continue-btns > * {
     width: 100%;
+    flex: none;
   }
 
   .rpt-top3-cta-wrap {
     width: 100%;
+    flex: none;
   }
 
   .rpt-bottom-btn {
     width: 100%;
+    flex: none;
+    min-height: 46px;
   }
 
   .rpt-v3-first-panel-desktop {
