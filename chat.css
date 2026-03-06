@@ -2915,7 +2915,18 @@ body.chat-page {
   .rpt-bottom-btn {
     width: 100%;
     flex: none;
-    min-height: 46px;
+    min-height: 40px;
+    height: 40px;
+    font-size: 0.82rem;
+  }
+
+  .rpt-bottom-btn--top3 {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .rpt-top3-cta-label {
+    font-size: 0.8rem;
   }
 
   .rpt-v3-first-panel-desktop {
@@ -2951,7 +2962,7 @@ body.chat-page {
   }
 
   .chat-bottom-area {
-    min-height: 102px;
+    min-height: 88px;
     justify-content: flex-end;
     padding-bottom: max(0.15rem, env(safe-area-inset-bottom));
   }
